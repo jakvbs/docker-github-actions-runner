@@ -47,14 +47,37 @@ function configure_container_tools() {
   fi
 }
 
+function configure_postgres() {
+  # shellcheck source=/dev/null
+  source /etc/os-release
+
+  local KEYRING="/etc/apt/keyrings/postgresql.gpg"
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o "${KEYRING}"
+  echo "deb [signed-by=${KEYRING}] https://apt.postgresql.org/pub/repos/apt/ ${VERSION_CODENAME}-pgdg main" \
+    | tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+}
+
+function configure_node() {
+  local KEYRING="/etc/apt/keyrings/nodesource.gpg"
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o "${KEYRING}"
+  echo "deb [signed-by=${KEYRING}] https://deb.nodesource.com/node_22.x nodistro main" \
+    | tee /etc/apt/sources.list.d/nodesource.list > /dev/null
+}
+
 function configure_sources() {
   configure_git
   configure_docker
   configure_container_tools
+  configure_postgres
+  configure_node
 }
 
 function remove_sources() {
   rm -f /etc/apt/sources.list.d/git-core.list
   rm -f /etc/apt/sources.list.d/docker.list
   rm -f /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+  rm -f /etc/apt/sources.list.d/pgdg.list
+  rm -f /etc/apt/sources.list.d/nodesource.list
 }

@@ -89,6 +89,26 @@ function install_yq() {
   mv "/tmp/yq_linux_${DPKG_ARCH}" /usr/local/bin/yq
 }
 
+function install_deploy-tools() {
+  local VENV_DIR="/opt/deploy-tools"
+  python3 -m venv "${VENV_DIR}"
+  "${VENV_DIR}/bin/pip" install \
+    https://github.com/neuroforgede/nothelm.py/archive/refs/tags/0.2.3.zip \
+    https://github.com/neuroforgede/docker-stack-deploy/archive/refs/tags/0.2.13.zip
+  ln -sf "${VENV_DIR}/bin/nothelm" /usr/local/bin/nothelm
+  ln -sf "${VENV_DIR}/bin/docker-sdp" /usr/local/bin/docker-sdp
+}
+
+function install_sops() {
+  local SOPS_VERSION="v3.11.0"
+  local DPKG_ARCH
+  DPKG_ARCH="$(dpkg --print-architecture)"
+
+  curl -sSL "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.${DPKG_ARCH}" -o /tmp/sops
+  install -m 0755 /tmp/sops /usr/local/bin/sops
+  rm -f /tmp/sops
+}
+
 function install_powershell() {
   local DPKG_ARCH PWSH_VERSION PWSH_DOWNLOAD_URL
 
