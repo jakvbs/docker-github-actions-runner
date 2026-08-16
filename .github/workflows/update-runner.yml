@@ -1,0 +1,65 @@
+name: Update runner image
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04-arm
+    env:
+      ORG: ${{ secrets.DOCKER_USER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read runner versions
+        id: versions
+        run: |
+          latest="$(curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name')"
+          latest="${latest#v}"
+          current="$(sed -nE 's/^ARG GH_RUNNER_VERSION="([^"]+)"$/\1/p' Dockerfile)"
+          echo "latest=${latest}" >> "$GITHUB_OUTPUT"
+          echo "current=${current}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump runner version
+        if: steps.versions.outputs.latest != steps.versions.outputs.current
+        env:
+          LATEST_VERSION: ${{ steps.versions.outputs.latest }}
+        run: |
+          sed -i.bak "s/^ARG GH_RUNNER_VERSION=\"[^\"]*\"/ARG GH_RUNNER_VERSION=\"${LATEST_VERSION}\"/" Dockerfile
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile
+          git commit -m "[Automated] Bump runner to ${LATEST_VERSION} [skip ci]"
+          git push
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push base image
+        run: |
+          docker build \
+            --file Dockerfile.base \
+            --tag "${ORG}/github-runner-base:ubuntu-noble" \
+            .
+          docker push "${ORG}/github-runner-base:ubuntu-noble"
+
+      - name: Build and push runner image
+        run: |
+          cp Dockerfile Dockerfile.weekly
+          sed -i.bak "s|^FROM .*|FROM ${ORG}/github-runner-base:ubuntu-noble|" Dockerfile.weekly
+          docker build \
+            --file Dockerfile.weekly \
+            --build-arg TARGETPLATFORM=linux/arm64 \
+            --tag "${ORG}/docker-github-actions-runner:noble-latest" \
+            .
+          docker push "${ORG}/docker-github-actions-runner:noble-latest"
