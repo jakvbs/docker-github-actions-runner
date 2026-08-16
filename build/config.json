@@ -24,7 +24,8 @@
         "libcurl4-openssl-dev",
         "libpq-dev",
         "pkg-config",
-        "libyaml-dev"
+        "libyaml-dev",
+        "postgresql-client-17"
       ]
     },
     {
@@ -105,10 +106,24 @@
       ]
     },
     {
+      "category": "deploy-tools",
+      "source": "script",
+      "packages": [
+        "deploy-tools"
+      ]
+    },
+    {
       "category": "yq",
       "source": "script",
       "packages": [
         "yq"
+      ]
+    },
+    {
+      "category": "sops",
+      "source": "script",
+      "packages": [
+        "sops"
       ]
     }
   ]
