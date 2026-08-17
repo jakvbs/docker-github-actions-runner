@@ -19,10 +19,16 @@ jobs:
 
       - name: Read runner versions
         id: versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           latest="$(curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" \
             https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name')"
           latest="${latest#v}"
+          if [[ -z "${latest}" || "${latest}" == "null" ]]; then
+            echo "Failed to resolve latest runner version" >&2
+            exit 1
+          fi
           current="$(sed -nE 's/^ARG GH_RUNNER_VERSION="([^"]+)"$/\1/p' Dockerfile)"
           echo "latest=${latest}" >> "$GITHUB_OUTPUT"
           echo "current=${current}" >> "$GITHUB_OUTPUT"
